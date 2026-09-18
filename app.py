@@ -96,7 +96,29 @@ def optimize(data: Scenario):
                 },
                 "explanation": "Battery charging restriction detected"
             })
+        elif "discharge" in note_lower:
 
+            directive_interpretation.append({
+                "note_index": i,
+                "applies": True,
+                "directive_type": "no_discharge_window",
+                "structured_adjustment": {
+                  "hours": [14, 15]
+                },
+                "explanation": "Battery discharge restriction detected"
+            })    
+        elif "grid" in note_lower:
+
+            directive_interpretation.append({
+                "note_index": i,
+                "applies": True,
+                "directive_type": "max_grid_window",
+                "structured_adjustment": {
+                    "hours": [14, 15],
+                    "max_grid_kwh": 100
+                },
+                "explanation": "Grid cap detected"
+            })
         elif "reserve" in note_lower:
 
             directive_interpretation.append({
