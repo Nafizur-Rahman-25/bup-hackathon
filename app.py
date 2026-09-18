@@ -1,53 +1,109 @@
-for i, note in enumerate(data["operator_notes"]):
+from fastapi import FastAPI
 
-    note_lower = note.lower()
+app = FastAPI()
 
-    if ("solar" in note_lower or
-        "pv" in note_lower or
-        "panel" in note_lower):
 
-        directive_interpretation.append({
-            "note_index": i,
-            "applies": True,
-            "directive_type": "solar_reduction",
-            "structured_adjustment": {
-                "hours": [13, 14],
-                "factor": 0.2
-            },
-            "explanation": "Solar reduction detected"
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+@app.post("/optimize-energy")
+def optimize(data: dict):
+
+    hourly_plan = []
+
+    initial_energy = data["battery"]["initial_energy_kwh"]
+
+    total_grid = 0
+    total_cost = 0
+    peak_grid = 0
+
+    for h in data["hours"]:
+
+        demand = h["demand_kwh"]
+        solar = h["solar_kwh"]
+
+        solar_used = min(demand, solar)
+        grid = max(0, demand - solar_used)
+
+        total_grid += grid
+        total_cost += grid * h["tariff_bdt_per_kwh"]
+
+        if grid > peak_grid:
+            peak_grid = grid
+
+        hourly_plan.append({
+            "hour": h["hour"],
+            "grid_kwh": grid,
+            "solar_used_kwh": solar_used,
+            "battery_action": "idle",
+            "battery_kwh": 0,
+            "battery_energy_after_kwh": initial_energy
         })
 
-    elif "charge" in note_lower:
+    directive_interpretation = []
 
-        directive_interpretation.append({
-            "note_index": i,
-            "applies": True,
-            "directive_type": "no_charge_window",
-            "structured_adjustment": {
-                "hours": [14, 15]
-            },
-            "explanation": "Battery charging restriction detected"
-        })
+    for i, note in enumerate(data["operator_notes"]):
 
-    elif "reserve" in note_lower:
+        note_lower = note.lower()
 
-        directive_interpretation.append({
-            "note_index": i,
-            "applies": True,
-            "directive_type": "minimum_battery_reserve",
-            "structured_adjustment": {
-                "hours": [18, 19, 20],
-                "minimum_energy_kwh": 120
-            },
-            "explanation": "Battery reserve detected"
-        })
+        if ("solar" in note_lower or
+            "pv" in note_lower or
+            "panel" in note_lower):
 
-    else:
+            directive_interpretation.append({
+                "note_index": i,
+                "applies": True,
+                "directive_type": "solar_reduction",
+                "structured_adjustment": {
+                    "hours": [13, 14],
+                    "factor": 0.2
+                },
+                "explanation": "Solar reduction detected"
+            })
 
-        directive_interpretation.append({
-            "note_index": i,
-            "applies": False,
-            "directive_type": "no_op",
-            "structured_adjustment": None,
-            "explanation": note
-        })
+        elif "charge" in note_lower:
+
+            directive_interpretation.append({
+                "note_index": i,
+                "applies": True,
+                "directive_type": "no_charge_window",
+                "structured_adjustment": {
+                    "hours": [14, 15]
+                },
+                "explanation": "Battery charging restriction detected"
+            })
+
+        elif "reserve" in note_lower:
+
+            directive_interpretation.append({
+                "note_index": i,
+                "applies": True,
+                "directive_type": "minimum_battery_reserve",
+                "structured_adjustment": {
+                    "hours": [18, 19, 20],
+                    "minimum_energy_kwh": 120
+                },
+                "explanation": "Battery reserve detected"
+            })
+
+        else:
+
+            directive_interpretation.append({
+                "note_index": i,
+                "applies": False,
+                "directive_type": "no_op",
+                "structured_adjustment": None,
+                "explanation": note
+            })
+
+    return {
+        "scenario_id": data["scenario_id"],
+        "directive_interpretation": directive_interpretation,
+        "hourly_plan": hourly_plan,
+        "total_grid_kwh": total_grid,
+        "total_cost_bdt": total_cost,
+        "peak_grid_kwh": peak_grid,
+        "plan_summary": "Basic energy optimization plan"
+    }
