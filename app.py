@@ -1,6 +1,28 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import List
 
 app = FastAPI()
+class Hour(BaseModel):
+    hour: int
+    demand_kwh: float
+    solar_kwh: float
+    tariff_bdt_per_kwh: float
+
+
+class Battery(BaseModel):
+    capacity_kwh: float
+    initial_energy_kwh: float
+    minimum_energy_kwh: float
+    max_charge_kwh_per_hour: float
+    max_discharge_kwh_per_hour: float
+
+
+class Scenario(BaseModel):
+    scenario_id: str
+    operator_notes: List[str]
+    hours: List[Hour]
+    battery: Battery
 
 
 @app.get("/health")
@@ -9,32 +31,32 @@ def health():
 
 
 @app.post("/optimize-energy")
-def optimize(data: dict):
+def optimize(data: Scenario):
 
     hourly_plan = []
 
-    initial_energy = data["battery"]["initial_energy_kwh"]
+    initial_energy = data.battery.initial_energy_kwh
 
     total_grid = 0
     total_cost = 0
     peak_grid = 0
 
-    for h in data["hours"]:
+    for h in data.hours:
 
-        demand = h["demand_kwh"]
-        solar = h["solar_kwh"]
+        demand = h.demand_kwh
+        solar = h.solar_kwh
 
         solar_used = min(demand, solar)
         grid = max(0, demand - solar_used)
 
         total_grid += grid
-        total_cost += grid * h["tariff_bdt_per_kwh"]
+        total_cost += grid * h.tariff_bdt_per_kwh
 
         if grid > peak_grid:
             peak_grid = grid
 
         hourly_plan.append({
-            "hour": h["hour"],
+            "hour": h.hour,
             "grid_kwh": grid,
             "solar_used_kwh": solar_used,
             "battery_action": "idle",
@@ -44,7 +66,7 @@ def optimize(data: dict):
 
     directive_interpretation = []
 
-    for i, note in enumerate(data["operator_notes"]):
+    for i, note in enumerate(data.operator_notes):
 
         note_lower = note.lower()
 
@@ -99,7 +121,7 @@ def optimize(data: dict):
             })
 
     return {
-        "scenario_id": data["scenario_id"],
+        "scenario_id": data.scenario_id,
         "directive_interpretation": directive_interpretation,
         "hourly_plan": hourly_plan,
         "total_grid_kwh": total_grid,
