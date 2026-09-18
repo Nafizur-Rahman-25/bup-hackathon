@@ -13,3 +13,11 @@ python -m uvicorn app:app --reload
 GET /health
 
 POST /optimize-energy
+## Supported Directives
+
+- solar_reduction
+- minimum_battery_reserve
+- no_charge_window
+- no_discharge_window
+- max_grid_window
+- no_op
