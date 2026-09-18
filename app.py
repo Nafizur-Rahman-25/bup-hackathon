@@ -85,28 +85,29 @@ def optimize(data: Scenario):
                 "explanation": "Solar reduction detected"
             })
 
-        elif "charge" in note_lower:
-
-            directive_interpretation.append({
-                "note_index": i,
-                "applies": True,
-                "directive_type": "no_charge_window",
-                "structured_adjustment": {
-                    "hours": [14, 15]
-                },
-                "explanation": "Battery charging restriction detected"
-            })
         elif "discharge" in note_lower:
 
-            directive_interpretation.append({
+              directive_interpretation.append({
                 "note_index": i,
                 "applies": True,
                 "directive_type": "no_discharge_window",
                 "structured_adjustment": {
-                  "hours": [14, 15]
-                },
-                "explanation": "Battery discharge restriction detected"
-            })    
+                   "hours": [14, 15]
+        },
+        "explanation": "Battery discharge restriction detected"
+    })
+
+        elif "charge" in note_lower:
+
+              directive_interpretation.append({
+                "note_index": i,
+                "applies": True,
+                "directive_type": "no_charge_window",
+                "structured_adjustment": {
+                   "hours": [14, 15]
+        },
+        "explanation": "Battery charging restriction detected"
+    })    
         elif "grid" in note_lower:
 
             directive_interpretation.append({
